@@ -62,12 +62,11 @@ def calculate_stress(force, sample_diameter):
 
     # calculate the cross-section area (mm^2)
     ### your code here ###
+    cross_sectional_area = math.pi * (sample_diameter / 2) ** 2
 
     # calculate stress (MPa) from load (kN) and cross-sectional area
     ### your code here ###
-
-    # delete this line and replace it with your own
-    stress = None
+    stress = force / cross_sectional_area * 1000  # Convert kN to N and mm^2 to m^2
 
     return stress
 
@@ -85,11 +84,17 @@ if __name__ == "__main__":
 
     ### Do not modify below this line ###
 
-    path_to_directory = "../../../data/tensile/"
-    path_to_samples = path_to_directory + material_folder + "/"
+    # Get the directory containing this Python script
+    script_directory = os.path.dirname(os.path.abspath(__file__))
 
-    # manually parse file to get gage diameter and then calculate cross-sectional area
-    path_to_file = path_to_samples + sample_name + ".csv"
+    # Navigate to the data folder relative to the script
+    path_to_directory = os.path.abspath(os.path.join(script_directory, "../../../data/tensile/"))
+
+    path_to_file = os.path.join(path_to_directory, material_folder, sample_name + ".csv")
+
+    # Check whether the file exists
+    print("Looking for file:", path_to_file)
+    print("File exists:", os.path.exists(path_to_file))
 
     # Step #1: Parse the file ane return based values
     # sample diameter (mm), time (s), displacement (mm), force (kN), and strain (%)

@@ -61,8 +61,10 @@ def calculate_stress(force, sample_diameter):
     """
 
     ### YOUR SOLUTION FROM STEP 1 TEMPLATE HERE ###
+    cross_sectional_area = math.pi * (sample_diameter / 2) ** 2
+    stress = force / cross_sectional_area * 1000
 
-    return None
+    return stress
 
 
 def calculate_max_strength_strain(strain, stress):
@@ -76,10 +78,10 @@ def calculate_max_strength_strain(strain, stress):
     """
 
     # calculate the maximum stress experienced
-    ultimate_tensile_stress = -1
+    ultimate_tensile_stress = np.max(stress)
 
     # calculate the maximum strain experienced
-    fracture_strain = -1
+    fracture_strain = np.max(strain)
 
     return ultimate_tensile_stress, fracture_strain
 
@@ -97,11 +99,17 @@ if __name__ == "__main__":
 
     ### Do not modify below this line ###
 
-    path_to_directory = "../../../data/tensile/"
-    path_to_samples = path_to_directory + material_folder + "/"
-
-    # manually parse file to get gage diameter and then calculate cross-sectional area
-    path_to_file = path_to_samples + sample_name + ".csv"
+    # Get the directory containing this Python script
+    script_directory = os.path.dirname(os.path.abspath(__file__))
+    
+    # Navigate to the data folder relative to the script
+    path_to_directory = os.path.abspath(os.path.join(script_directory, "../../../data/tensile/"))
+    
+    path_to_file = os.path.join(path_to_directory, material_folder, sample_name + ".csv")
+    
+    # Check whether the file exists
+    print("Looking for file:", path_to_file)
+    print("File exists:", os.path.exists(path_to_file))
 
     # Step #1: Parse the file ane return based values
     # sample diameter (mm), time (s), displacement (mm), force (kN), and strain (%)

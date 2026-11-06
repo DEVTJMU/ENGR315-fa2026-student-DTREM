@@ -34,6 +34,7 @@ def fit_normal(_samples):
     fitted_std = None
 
     # YOUR CODE HERE #
+    fitted_mean, fitted_std = norm.fit(_samples)
 
     return fitted_mean, fitted_std
 
@@ -42,13 +43,9 @@ def fit_exponential(_samples):
     """
     Fit samples to an exponential distribution that starts at 0
     :param _samples: A numpy array of samples
-    :return: The fitted beta (scale) of the exponential distribution. Remember beta = 1 / lambda
+    :return: The fitted beta (scale) of the exponential distribution
     """
-
-    # Hint: use expon.fit() as in the lecture example. Pass floc=0 so the location stays at 0 and only beta is fit
-    fit_beta = None
-
-    # YOUR CODE HERE #
+    fit_beta = expon.fit(_samples, floc=0)[1]
 
     return fit_beta
 
@@ -66,6 +63,8 @@ def normal_range(_samples, _fraction):
     upper = None
 
     # YOUR CODE HERE #
+    fitted_mean, fitted_std = fit_normal(_samples)
+    lower, upper = norm.interval(_fraction, loc=fitted_mean, scale=fitted_std)
 
     return lower, upper
 

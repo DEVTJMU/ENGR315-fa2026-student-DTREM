@@ -1,7 +1,82 @@
 import numpy as np
+from scipy import signal as scipy_signal
+from scipy.signal import find_peaks
 from ekg_testbench import EKGTestBench
 
+
 def detect_heartbeats(filepath):
+    """
+    Perform analysis to detect location of heartbeats.
+    Returns the filtered ECG signal and detected heartbeat indices.
+    """
+    if filepath == '':
+        return list()
+
+    # Load CSV data, skipping the two header rows
+    data = np.loadtxt(filepath, delimiter=',', skiprows=2)
+
+    # First column is time; second column is the ECG signal
+    time = data[:, 0]
+    signal = data[:, 1]
+
+    # Calculate sampling frequency from time values
+    fs = 1.0 / np.median(np.diff(time))
+
+    # Remove any DC offset
+    signal = signal - np.mean(signal)
+
+    # Bandpass filter: retain frequencies between 5 and 15 Hz
+    sos = scipy_signal.butter(
+        2, [5, 15], btype='bandpass', fs=fs, output='sos'
+    )
+    filtered = scipy_signal.sosfiltfilt(sos, signal)
+
+    # Differentiate the filtered signal
+    derivative = np.gradient(filtered) * fs
+
+    # Square the derivative
+    squared = derivative ** 2
+
+    # Moving-window integration (150 ms)
+    window_size = int(round(0.150 * fs))
+    integration_kernel = np.ones(window_size) / window_size
+    integrated = np.convolve(
+        squared, integration_kernel, mode='same'
+    )
+
+    # Adaptive peak detection
+    # Minimum separation of 250 ms between detected beats
+    min_distance = int(0.250 * fs)
+
+    # Use a robust signal range rather than half the global maximum
+    lower = np.percentile(integrated, 25)
+    upper = np.percentile(integrated, 95)
+    prominence = max((upper - lower) * 0.10, 1e-12)
+
+    candidates, _ = find_peaks(
+        integrated,
+        distance=min_distance,
+        prominence=prominence
+    )
+
+    # Refine each candidate to the nearest R-wave peak
+    # within an 80 ms window in the filtered ECG signal
+    search_radius = int(0.080 * fs)
+    beats = []
+
+    for peak in candidates:
+        start = max(0, peak - search_radius)
+        end = min(len(filtered), peak + search_radius + 1)
+
+        # Find the largest absolute ECG deflection
+        local_peak = start + np.argmax(np.abs(filtered[start:end]))
+        beats.append(local_peak)
+
+    beats = np.array(sorted(set(beats)), dtype=int)
+
+    # Return filtered ECG and detected heartbeat indices
+    return filtered, beats
+
     """
     Perform analysis to detect location of heartbeats
     :param filepath: A valid path to a CSV file of heart beats
@@ -15,36 +90,42 @@ def detect_heartbeats(filepath):
     path = filepath
 
     # load data in matrix from CSV file; skip first two rows
-    ## your code here
+    data = np.loadtxt(path, delimiter=',', skiprows=2)
 
     # save each vector as own variable
-    ## your code here
+    signal = data[:, 0]  # Example: assuming the first column is the signal
 
     # identify one column to process. Call that column signal
 
-    signal = -1 ## your code here
+    signal = -1 * signal  # invert the signal if necessary
 
     # pass data through LOW PASS FILTER (OPTIONAL)
-    ## your code here
+    sos = scipy_signal.butter(2, 15, btype='low', fs=360, output='sos')
+    signal = scipy_signal.sosfiltfilt(sos, signal)
 
     # pass data through HIGH PASS FILTER (OPTIONAL) to create BAND PASS result
-    ## your code here
+    sos = scipy_signal.butter(2, 5, btype='high', fs=360, output='sos')
+    signal = scipy_signal.sosfiltfilt(sos, signal)
 
     # pass data through differentiator
-    ## your code here
+    derivative_kernel = np.array([-1, -2, 0, 2, 1], dtype=float) * (360 / 8.0)
+    signal = np.convolve(signal, derivative_kernel, mode='same')
 
     # pass data through square function
-    ## your code here
+    signal = signal ** 2
 
     # pass through moving average window
-    ## your code here
+    window_size = max(1, int(round(0.150 * 360)))
+    integration_kernel = np.ones(window_size, dtype=float) / window_size
+    signal = np.convolve(signal, integration_kernel, mode='same')
 
     # use find_peaks to identify peaks within averaged/filtered data
     # save the peaks result and return as part of testbench result
 
     ## your code here peaks,_ = find_peaks(....)
+    peaks, _ = find_peaks(signal, height=np.max(signal)*0.5)
 
-    beats = None
+    beats = peaks  # save the peaks result and return as part of testbench result
 
     # do not modify this line
     return signal, beats
@@ -71,7 +152,11 @@ if __name__ == "__main__":
     ### DO NOT MODIFY BELOW THIS LINE!!! ###
 
     # path to ekg folder
-    path_to_folder = "../../../data/ekg/"
+    import os
+
+    path_to_folder = os.path.abspath(
+        os.path.join(os.path.dirname(__file__), "../../../data/ekg/")
+    ) + os.sep
 
     # select a signal file to run
     signal_filepath = path_to_folder + database_name + ".csv"
